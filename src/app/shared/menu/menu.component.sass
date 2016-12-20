@@ -1,0 +1,60 @@
+@import "../../variables"
+
+
+
+nav
+  width: 100%
+  display: block
+
+
+  .topnav
+    width: $page-width
+    display: block
+    margin-left: auto
+    margin-right: auto
+
+
+
+ul.topnav
+  list-style-type: none
+  margin: 0
+  padding: 0
+  overflow: hidden
+  color: $primary
+  li
+    float: left
+    a
+      color: $primary
+      display: inline-block
+      text-align: center
+      padding: 14px 16px
+      text-decoration: none
+      transition: 0.3s
+      font-size: 17px
+      &:hover
+        background-color: darken($background, 20%)
+        color: lighten($primary, 70%)
+    &.icon
+      display: none
+
+@media screen and (max-width: 680px)
+  ul.topnav li
+    &:not(:first-child)
+      display: none
+    &.icon
+      float: right
+      display: inline-block
+
+@media screen and (max-width: 680px)
+  ul.topnav.responsive
+    position: relative
+    li
+      &.icon
+        position: absolute
+        right: 0
+        top: 0
+      float: none
+      display: inline
+      a
+        display: block
+        text-align: left
