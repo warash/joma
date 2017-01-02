@@ -1,0 +1,32 @@
+<button class="btn btn-primary">Add</button>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="row row-product" *ngFor="let product of products$|async" (click)="showDetails(product)">
+      <div class="col-md-2">
+        <img [attr.src]="product.imageUrl" alt="" class="thumbnail">
+      </div>
+      <div class="col-md-5">{{product.name}}</div>
+      <div class="col-md-5">{{product.price}} zl</div>
+    </div>
+  </div>
+  <div class="col-md-6 details" *ngIf="details">
+
+    <form #f="ngForm" (ngSubmit)="saveProduct(f.value)">
+      <div class="form-group">
+        <input type="text" class="form-control" placeholder="Nazwa"
+               required minlength="5" name="name"
+               [(ngModel)]="details.name" #name="ngModel">
+      </div>
+
+      <div class="form-group">
+        <input type="text" class="form-control" name="price" placeholder="Cena"
+               [(ngModel)]="details.price">
+      </div>
+
+      <button type="submit" [disabled]="!f.valid" class="btn btn-default">Zapisz</button>
+    </form>
+
+  </div>
+</div>
+

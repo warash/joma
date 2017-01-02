@@ -1,73 +1,99 @@
-import { Http } from '@angular/http';
-import { Subject, Observable, Subscription, BehaviorSubject, ReplaySubject } from 'rxjs';
-import { curry, filter, partial } from 'lodash';
+import { Subject, Observable, ReplaySubject } from 'rxjs';
+import { curry, filter } from 'lodash';
 import { Injectable } from '@angular/core';
+import { AngularFire } from 'angularfire2';
+import { assign } from 'lodash';
+
+
+export class BaseStore {
+
+  protected updates$: Subject<any>;
+  state$: Observable<any>;
+
+  constructor() {
+
+    this.updates$ = new Subject<any>();
+
+    this.state$ = this.updates$
+      .scan((state, modifier) => modifier(state), initState)
+      .do(s => console.info("current state:", s))
+      .publishReplay(1).refCount();
+
+    this.state$.subscribe();
+  }
+}
+
+
+export declare function reaction<T>(this: Observable<T>, success: Function, init?: Function, err?: Function): Observable<any>;
+export declare function pour<T>(this: Observable<T>, dest: Subject<any>): any;
+
+declare module 'rxjs/Observable' {
+  interface Observable<T> {
+    reaction: typeof reaction;
+    pour: typeof pour;
+  }
+}
+
+
+Observable.prototype.reaction = function (success, init, err) {
+  let ret = this.map(x => curry(success)(x));
+  if (init) {
+    ret = ret.startWith(init)
+  }
+  if (err) {
+    ret.catch(e => Observable.of(err))
+  }
+  return ret;
+};
+Observable.prototype.pour = function (dest: Subject<any>) {
+  return this.subscribe(result => dest.next(result))
+};
+
+
 const initState = {
   type: 'all',
   products: [],
   busy: false
 };
 
+
 @Injectable()
-export class ProductListStore {
+export class ProductListStore extends BaseStore {
 
+  constructor(private af: AngularFire) {
+    super();
 
-  constructor(private http: Http) {
-
-    this.updates$ = new ReplaySubject<any>();
-
-    this.state$ = this.updates$
-      .scan((state, updateFunction) => {
-        return updateFunction(state)
-      }, initState).do(s => console.log(s))
-      .publishReplay(1).refCount();
-
-
-    this.products$ = this.state$.map(s => {
-      return filter(s.products, {type: s.type});
-    });
-
-
-    this.filterByType$ = new Subject<string>();
-
-    this.filterByType$.map((filter) => partial(this.onFilterChanged, filter))
-      .subscribe(this.updates$);
-
-
-    this.http.get('/assets/data/products.json')
-      .map(r => r.json()).publishReplay(1).refCount()
-      .map(products => partial(this.onProductLoaded, products))
-      .startWith(this.setBusy)
-      .subscribe(update => {
-        this.updates$.next(update)
-      });
+    this.af.database.list('/products')
+      .reaction(this.onProductLoaded, this.onSetBusy)
+      .pour(this.updates$);
   }
 
-
-  //reducers
-  private setBusy(state) {
-    state.busy = true;
-    return state;
+  //mutations
+  private onSetBusy(state) {
+    console.log('busy');
+    return assign(state, {busy: true});
   }
 
   private onProductLoaded(products, state) {
-    state.products = products;
-    state.busy = false;
-    return state;
+    console.log('loaded');
+    return assign(state, {products, busy: false});
   }
 
   private onFilterChanged(type, state) {
-    state.type = type;
-    return state;
+    console.log('filter');
+    return assign(state, {type});
   }
 
-  //state
-  private updates$: Subject<any>;
-  state$: Observable<any>;
-  products$: Observable<any>;
+  //selectors
+  products$ = this.state$.map(s => {
+    if (s.type === 'all') return s.products;
+    return filter(s.products, {type: s.type});
+  });
 
-  //intents
-  filterByType$: Subject<any>;
+  //actions
+  filterByType$ = new Subject<string>();
 
-
+  //reactions
+  private filterOnClient = this.filterByType$
+    .reaction(this.onFilterChanged).pour(this.updates$);
 }

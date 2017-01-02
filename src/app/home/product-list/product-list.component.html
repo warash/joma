@@ -1,7 +1,6 @@
-
 <ul>
 
   <li *ngFor="let product of products">
-    <img [attr.src]="product.imageUrl" alt="">
+    <app-product-item [product]="product"></app-product-item>
   </li>
 </ul>

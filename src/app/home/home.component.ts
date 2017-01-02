@@ -17,9 +17,9 @@ export class HomeComponent implements OnInit {
   }
 
   ngOnInit() {
-
     this.products$ = this.prodStore.products$;
     this.busy$ = this.prodStore.state$.map(s => s.busy);
+
 
     this.route.params.map(p => p['type']).subscribe(x=>{
       this.prodStore.filterByType$.next(x)
